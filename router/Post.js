@@ -50,25 +50,35 @@ router.post("/submit", (req, res) => {
 });
 // 목록 읽어오기
 router.post("/list", (req, res) => {
-  // console.log("전체목록 호출");
-  let = {};
+  // console.log("전체목록 호출", req.body);
+  let sort = {};
   if (req.body.sort === "최신글") {
     sort = { id: -1 };
   } else {
     sort = { id: 1 };
   }
-  Todo.find({
-    title: new RegExp(req.body.search),
-    uid: req.body.uid,
-  })
+
+  Todo.find({ title: new RegExp(req.body.search), uid: req.body.uid })
     .populate("author")
     .sort(sort)
-    .skip(req.body.skip)
+    .skip(req.body.skip) // 0 ~ 4, 5 ~ 9, 10~14
     .limit(5)
     .exec()
     .then((doc) => {
       // console.log(doc);
-      res.status(200).json({ success: true, initTodo: doc });
+      // 총 카운트를 하여서 버튼 출력 여부 결정
+      Todo.count({
+        title: new RegExp(req.body.search),
+        uid: req.body.uid,
+      })
+        .then((number) => {
+          // console.log(number);
+          res.status(200).json({ success: true, initTodo: doc, total: number });
+        })
+        .catch((error) => {
+          console.log(error);
+          res.status(400).json({ success: false });
+        });
     })
     .catch((error) => {
       console.log(error);
@@ -140,7 +150,7 @@ router.post("/deleteall", (req, res) => {
 // 사용자 제거
 router.post("/userout", (req, res) => {
   console.log("사용자 삭제 ", req.body);
-   // mongoose 문서참조
+  // mongoose 문서참조
   User.deleteOne({ uid: req.body.uid })
     .exec()
     .then(() => {
